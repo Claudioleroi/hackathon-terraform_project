@@ -74,6 +74,52 @@ resource "aws_instance" "hackathon_instance" {
     volume_size = 30
     volume_type = "gp2"
   }
+connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.rsa_4096.private_key_pem
+    host        = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt update -y",
+      "sudo apt upgrade -y",
+      "sudo apt install apache2 -y",
+      "sudo systemctl start apache2",
+      "sudo systemctl enable apache2",
+      "sudo apt install mariadb-server mariadb-client -y",
+      "sudo systemctl start mariadb",
+      "sudo systemctl enable mariadb",
+      "sudo mysql-secure-installation",
+       "sudo systemctl restart mariadb",
+       "sudo apt install php-mysql php-gd php-cli php-common -y",
+ 
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt install wget -y",
+      "sudo wget  https://wordpress.org/latest.zip",
+      "sudo unzip latest.zip",
+      "sudo cp -r wordpress/* /var/www/html/",
+      "cd /var/www/html/",
+      "sudo chown -R www-data:www-data /var/www/html/",
+      "sudo rm -rf index.html",
+      "cd",
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mysql -u root -p \"CREATE DATABASE wordpress;\"",
+      "sudo mysql -u root -p \"CREATE USER 'wpadmin' IDENTIFIED BY 'wpadminpass';\"",
+      "sudo mysql -u root -p \"GRANT ALL PRIVILEGES ON wordpress.* TO 'wpadmin';\"",
+      "sudo mysql -u root -p \"FLUSH PRIVILEGES;\"",
+    ]
+  }
+}
 
   provisioner "remote-exec" {
     inline = [
